@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>D Baird Mk1 · 2 m EDF glider</title>
+<meta name="description" content="Interactive 3D viewer, specs and RealFlight setup for the D Baird Mk1, a 2 m fiberglass glider with a 64 mm EDF on a retracting lift.">
+<meta property="og:title" content="D Baird Mk1 · 2 m EDF glider">
+<meta property="og:description" content="2 m fiberglass glider with a 64 mm EDF that rises out of the fuselage. 3D viewer, specs, RealFlight download and controller setup.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+[hidden]{display:none!important}
+/* D Baird Mk1 viewer: dark hangar theme, one plane. */
+:root{
+  --bg:#0e1114; --panel:#161b20; --panel2:#1c232a; --line:#2a333d;
+  --fg:#e7eaee; --muted:#8f9aa6; --accent:#ff7a1a; --ok:#46c28a; --warn:#e6b450;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.55 var(--body);margin:0}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 32px;display:grid;gap:12px}
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between}
+.eyebrow{font:500 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 clamp(28px,4vw,40px)/1.05 var(--display);letter-spacing:.01em;margin:6px 0 0;text-wrap:balance}
+.sub{color:var(--muted);margin:6px 0 0;max-width:68ch}
+.badge{font:500 12px/1 var(--mono);color:var(--muted);border:1px solid var(--line);padding:6px 9px;border-radius:4px;white-space:nowrap}
+.picker{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.picker a{flex:0 0 auto;text-decoration:none;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px;display:grid;gap:2px;min-width:150px}
+.picker a small{font:11px var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.picker a b{font:600 18px/1.1 var(--display);letter-spacing:.02em}
+.picker a[aria-current="page"]{border-color:var(--accent);background:var(--panel2)}
+.picker a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.main{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:12px;align-items:start}
+@media(max-width:900px){.main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+#view{position:relative;height:500px;padding:0;overflow:hidden}
+@media(max-width:600px){#view{height:360px}.hint{display:none}.badge{white-space:normal}}
+.thr{position:absolute;left:10px;right:10px;bottom:30px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;background:rgba(14,17,20,.82);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:12px var(--mono);color:var(--muted)}
+.thr input{flex:1 1 140px;accent-color:var(--accent);background:linear-gradient(90deg,transparent 0 7.6%,var(--warn) 7.6% 8.4%,transparent 8.4%)}
+.thr b{color:var(--fg);min-width:3.2em}.thr #thrState{color:var(--accent);flex:1 1 100%}
+@media(min-width:700px){.thr #thrState{flex:0 0 auto;min-width:17em}}
+#view canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+.ctl{position:absolute;left:10px;right:10px;top:10px;display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;pointer-events:none}
+.ctl .grp{display:flex;gap:4px;pointer-events:auto;flex-wrap:wrap}
+.ctl button{font:500 12px var(--mono);background:rgba(14,17,20,.75);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:5px 8px;cursor:pointer}
+.ctl button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.hint{position:absolute;left:12px;bottom:10px;font:12px var(--mono);color:var(--muted);pointer-events:none}
+.scale{position:absolute;right:12px;bottom:10px;font:12px var(--mono);color:var(--muted)}
+h2{font:600 12px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.stack{display:grid;gap:12px;align-content:start;min-width:0}
+.blurb{margin:0}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 8px 6px 0;border-bottom:1px solid var(--line)}
+td{padding:4px 8px 4px 0;border-bottom:1px solid var(--line);vertical-align:top;font-variant-numeric:tabular-nums}
+td:first-child{color:var(--muted);width:30%}
+td.pending{color:var(--warn);font-style:italic}
+.est{font:12px var(--mono);color:var(--muted)}
+.tc{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px}
+.tc input[type=checkbox]{width:17px;height:17px;accent-color:var(--ok);margin:0}
+.tc.done span{color:var(--muted)}
+.tc .pred{font:11px var(--mono);color:var(--muted);display:block}
+.tin{font:13px var(--mono);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px 6px;width:118px;max-width:38vw}
+.tin.wide{width:100%;max-width:none}
+textarea.tin{width:100%;max-width:none;min-height:54px;resize:vertical;font-family:var(--body);font-size:13.5px}
+.tin:focus{outline:2px solid var(--accent);outline-offset:0}
+.tmeta{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:0 0 6px}
+.tmeta label,.lbl{font:11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:grid;gap:3px}
+.prog{height:4px;background:var(--line);border-radius:2px;margin:2px 0 8px;overflow:hidden}.prog i{display:block;height:100%;background:var(--ok);width:0}
+.sch{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:7px 8px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:var(--panel2);margin-bottom:6px;width:100%;text-align:left;color:var(--fg);font:inherit}
+.sch[aria-pressed="true"]{border-color:var(--accent)}
+.sch b{font:600 16px var(--display);letter-spacing:.02em}.sch small{font:11px var(--mono);color:var(--muted);grid-column:1/-1}
+.sws{display:flex;gap:3px}.sws i{width:18px;height:18px;border-radius:3px;border:1px solid rgba(255,255,255,.18);display:block}
+#cgSvg{width:100%;height:auto;display:block}
+.cgnums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:6px}
+.cgnums div{background:var(--panel2);border-radius:6px;padding:6px 8px}.cgnums b{display:block;font:600 20px var(--display)}.cgnums span{font:11px var(--mono);color:var(--muted)}
+ul{margin:0;padding-left:18px}
+li{margin:5px 0}
+.gate{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line)}
+.gate b{font:600 16px var(--display);color:var(--accent);min-width:28px}
+.gate .s{margin-left:auto;font:11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.gate .s.done{color:var(--ok)}
+.gate .s.now{color:var(--accent)}
+.foot{font:12px var(--mono);color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.ctl button{transition:none}}
+.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 14px var(--body);text-decoration:none;display:inline-flex;align-items:center;gap:8px;border-radius:6px;padding:9px 14px;border:1px solid var(--line);color:var(--fg);background:var(--panel)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#14110e}
+.btn:hover{filter:brightness(1.08)}.btn:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.btn[aria-disabled="true"]{opacity:.55;pointer-events:none}
+.btn small{font:500 11px var(--mono);opacity:.8}
+.kv{display:grid;grid-template-columns:minmax(0,38%) minmax(0,1fr);gap:0;font-size:13.5px}
+.kv div{padding:5px 8px 5px 0;border-bottom:1px solid var(--line)}.kv div:nth-child(odd){color:var(--muted)}
+.callout{margin:10px 0 0;padding:8px 10px;border-left:3px solid var(--warn);background:var(--panel2);font-size:13.5px;border-radius:0 6px 6px 0}
+ol.fb{margin:0;padding-left:20px}ol.fb li{margin:4px 0}
+.foot a{color:var(--muted)}
+
+</style>
+</head><body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="eyebrow" id="client"></div>
+      <h1 id="name">—</h1>
+      <p class="sub" id="tag"></p>
+    </div>
+    <div class="acts">
+      <a class="btn primary" id="dl" href="#" download>Download for RealFlight <small id="dlMeta"></small></a>
+      <a class="btn" id="forum" href="#" target="_blank" rel="noopener">Forum thread</a>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="stack">
+      <div class="panel" id="view">
+        <div class="ctl">
+          <div class="grp" id="cams">
+            <button type="button" data-v="iso">3/4</button><button type="button" data-v="top">Top</button><button type="button" data-v="side">Side</button><button type="button" data-v="front">Front</button>
+          </div>
+          <div class="grp" id="toggles"></div>
+        </div>
+        <div class="hint">Drag to rotate · scroll or pinch to zoom</div>
+        <div class="scale" id="scaleNote"></div>
+        <div class="thr" id="thr"><span>Throttle</span><input type="range" id="thrIn" min="0" max="100" value="0" aria-label="Throttle"><b id="thrPct">0%</b><span id="thrState">lift stowed</span></div>
+      </div>
+      <div class="panel">
+        <h2>Controller setup <span class="est">RealFlight Evolution</span></h2>
+        <div class="kv">
+          <div>Channels</div><div>Throttle, aileron, elevator, rudder, plus flaps on <b>switch D</b></div>
+          <div>Flaps</div><div>Switch D: up / mid / down = 0 / 15 / 30°</div>
+          <div>Aileron</div><div>15° up / 12° down (differential is in the model)</div>
+          <div>Elevator</div><div>12° each way</div>
+          <div>Rudder</div><div>30° each way</div>
+          <div>Expo (suggested)</div><div>About 30% on aileron and elevator to start, tune to taste</div>
+          <div>Power on</div><div>Thrust line sits ≈ 105 mm above the wing, so power pitches the nose down. Hold a little up elevator in the climb.</div>
+        </div>
+        <p class="callout"><b>Throttle:</b> the lift opens above <b>8%</b>. Keep the stick fully down while gliding or the lid pops open. If you use a throttle cut, set it below 8%.</p>
+      </div>
+      <div class="panel" id="physPanel" hidden>
+        <h2>Physics <span class="est" id="physNote"></span></h2>
+        <div class="tw"><table id="phys"><thead></thead><tbody></tbody></table></div>
+      </div>
+      <div class="panel">
+        <h2>Feedback I'm after</h2>
+        <ol class="fb" id="tests"></ol>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="panel"><h2>Concept</h2><p class="blurb" id="blurb"></p></div>
+      <div class="panel">
+        <h2>Spec sheet <span class="est" id="specNote"></span></h2>
+        <div class="tw"><table id="specs"><thead></thead><tbody></tbody></table></div>
+      </div>
+      <div class="panel" id="cgPanel" hidden>
+        <h2>Centre of gravity <span class="est" id="cgNote"></span></h2>
+        <svg id="cgSvg" viewBox="0 0 400 104" role="img" aria-label="CG position on the root chord"></svg>
+        <div class="cgnums" id="cgNums"></div>
+      </div>
+      <div class="panel" id="schemePanel" hidden>
+        <h2>Colour schemes</h2>
+        <div id="schemes"></div>
+      </div>
+      <div class="panel" id="massPanel" hidden>
+        <h2>Weight build-up <span class="est" id="massNote"></span></h2>
+        <div class="tw"><table id="mass"><thead></thead><tbody></tbody></table></div>
+      </div>
+      <div class="panel"><h2>Notes</h2><ul id="why"></ul><p class="est" id="notes" style="margin:10px 0 0"></p></div>
+    </div>
+  </div>
+
+  <p class="foot">Original design by Dan Baird. All figures are estimates until a real one is built and weighed. Designed with AI-assisted tools. Not affiliated with RealFlight or Horizon Hobby.</p>
+</div>
+
+<script src="three.min.js"></script>
+<script src="mk1_mesh.js"></script>
+<script>
+/* ===== Links: edit these two lines when the files and thread are live ===== */
+const DOWNLOAD={url:"", label:"V1.1 · .RFX"}; // e.g. "downloads/D_Baird_Mk1_V1.1.zip" or the Swap Pages link
+const FORUM_URL=""; // paste the RealFlight forum thread URL here
+
+const P={
+  id:"d-baird-mk1", short:"D Baird Mk1", kind:"2 m glider · EDF lift",
+  client:"Original design · V1.1 · feedback welcome", name:"D Baird Mk1 · 2 m EDF glider",
+  tag:"My own 2 m fiberglass glider. Throttle up and a 64 mm fan rises out of the back of the canopy on a scissor lift. At idle the brake stops it silent and it folds back under a flush lid.",
+  badge:"RealFlight Evolution · 6S 2200 physics",
+  blurb:"A smooth teardrop pod with a sharp nose and a deep black canopy, a 2 m tapered wing with ailerons and flaps, and a conventional tail. Behind the canopy a parallelogram lift (two link pairs and a carriage) raises a 64 mm 12-blade fan, which stays level as it rises. The lid on top of the fan can is the skin when it is down. Throttle above 8% opens it in 0.8 s. The model here is the real v1_2 geometry, not an illustration.",
+  variants:[{id:"redarrow",label:"RedArrow (standard)"},{id:"ninja",label:"Ninja"}],
+  modes:[{id:"off",label:"Throttle off"},{id:"on",label:"Throttle on"},{id:"demo",label:"Demo lift"}],
+  scaleNote:"Span 2.00 m · real v1_2 geometry",
+  specCols:["","EDF build","Glider build"], specNote:"(est. until weighed)",
+  specs:[
+    ["Wingspan","2000 mm","2000 mm"],["Length","1108 mm","1108 mm"],
+    ["Wing","31.4 dm², AR 12.7, chord 210 / 100 mm","Same"],
+    ["Controls","Ailerons, flaps, elevator, rudder","Same"],
+    ["Fan","64 mm 12-blade, 2500 kV, 6S, 80 A ESC","None, lift stays flush"],
+    ["Static thrust","≈ 1650 g at 70 A (Salt Lake air)","—"],
+    ["Battery","6S 2200 (6S 2500 fits)","Nose lead instead"],
+    ["All-up weight","≈ 1875 g (1920 g on 6S 2500)","≈ 1390 g incl. ≈ 160 g lead"],
+    ["Thrust to weight","0.88","—"],
+    ["Wing loading","≈ 60 g/dm²","≈ 44 g/dm²"],
+    ["Stall (CLmax 1.1, Salt Lake)","≈ 36 km/h","≈ 31 km/h"],
+    ["CG","53 mm aft of root LE (33% MAC)","Same"],
+    ["Nose lead","None (pack slides to balance)","≈ 160 g"],
+    ["Fan up","CG moves 10.6 mm forward","—"],
+    ["Full throttle","≈ 1.5 min, climb in bursts","—"]
+  ],
+  physCols:["","D Baird Mk1 6S 2200 v1_0"], physNote:"(installed in RealFlight · est until weighed)",
+  physics:[
+    ["Model","D Baird Mk1 v1_0 (model ID 59025544): draws the 50 mm can, flies the 64 mm fan"],
+    ["Mass in the file","2131 g (1875 g AUW scaled ×1.136 for sim feel)"],
+    ["CG","52.8 mm aft of root LE · 33% of the 160 mm MAC"],
+    ["Balance","6S pack 175 mm behind the nose · no lead"],
+    ["Fan up","CG moves ≈ 10 mm forward (the fan's mass stays stowed in the sim)"],
+    ["Motor","2500 kV, Rm 0.020 Ω, Io 2.0 A, 64 mm 12-blade (ducted)"],
+    ["Static thrust","1647 g · 69.8 A · ≈ 43,600 rpm at Salt Lake"],
+    ["Thrust line","≈ 105 mm above the wing: power pitches the nose down"],
+    ["Throttle animation","Front links, rear links, carriage: step at 8%, 0.8 s travel"],
+    ["Idle","ESC brake on: fan stops, lift folds, lid flush"],
+    ["Controls","Ailerons 15/12°, elevator 12°, rudder 30°, flaps 0/15/30° on switch D"],
+    ["Wing loading","59.7 g/dm²"],["Stall (CLmax 1.1)","35.9 km/h"],
+    ["Best glide (lid shut)","L/D ≈ 20 at ≈ 41 km/h"],["Min sink","≈ 0.49 m/s at ≈ 32 km/h"],
+    ["Thrust to weight","0.88"],["Full throttle","≈ 1.5 min"]
+  ],
+  massCols:["Item","EDF (g)","Glider (g)"], massNote:"(class estimates, nothing weighed)",
+  mass:[
+    ["Wing pair with ailerons and flaps","520","520"],["Fuselage, GRP","330","330"],["Stab, elevators, fin, rudder","100","100"],
+    ["Canopy and frame","45","45"],["Wing joiner rod and pins","40","40"],["4 servos, wiring, receiver, pushrods","110","110"],
+    ["Main wheel, tail skid","35","35"],["Fan 64 mm with motor (spec)","190","—"],["Lid, ring, coupler","30","—"],
+    ["Lift mechanism and servo (scaled)","60","—"],["ESC 80 A","75","—"],["Battery 6S 2200 / rx pack 2S 800","340","45"],
+    ["Nose lead","0","163"],["All-up weight","1875","1388"]
+  ],
+  gates:["done","done","done","now","pending"],
+  tests:[
+    {t:"Throttle above 8%: the lift rises in 0.8 s and the fan spins once up"},
+    {t:"The lift swings UP out of the fuselage (not down into it)"},
+    {t:"Idle: the brake stops the fan, the lift folds, the lid sits flush"},
+    {t:"The fan rotor rides up with the carriage"},
+    {t:"Roll rate, full aileron",unit:"deg/s",pred:"—"},
+    {t:"Power-off stall speed",unit:"km/h",pred:"36"},
+    {t:"Glide with the lid shut: sink rate",unit:"m/s",pred:"0.49"},
+    {t:"Climb at full throttle (angle or rate)",unit:"note"},
+    {t:"Pitch trim needed with power on",unit:"note",pred:"nose-down push"},
+    {t:"Flaps: pitch change at full flap",unit:"note"},
+    {t:"CG that flies right (behind the root LE)",unit:"mm",pred:"52.8",cg:true},
+    {t:"Flight time to low-voltage cutoff",unit:"min",pred:"1.5"}
+  ],
+  physFile:"D Baird Mk1 6S 2200 v1_0",
+  cg:{chord:210,macLE:0,mac:160,target:52.8,band:[48.0,57.6],fanShift:-10.6,note:"(est, 33% MAC)"},
+  schemes:[
+    {id:"redarrow",label:"RedArrow",status:"Standard · in RealFlight (model v1_0)",colors:["#c8102e","#141414","#f2f2ef","#141414"]},
+    {id:"ninja",label:"Ninja",status:"Second scheme · not built into RealFlight yet",colors:["#0a0a0c","#ff5f00","#ff1f8f","#00a8ff","#a7adb5"]}
+  ],
+  why:[
+    "An original 2 m design, from a forum request to a flyable RealFlight model",
+    
+    "Throttle-driven animation: the hatch opens, the fan rises and pushes"
+  ],
+  notes:"This page draws the true parallelogram path. RealFlight can only turn a part about a hinge, so the carriage there is a 4° stand-in turn that lands on the same raised pose (gap up to 32 mm mid-travel). Weights and thrust come from a parts budget and the fan maker's static-thrust point, which has not been checked. Glide figures are a first-pass polar (CD0 0.020, e 0.85) with the lid shut; the raised fan adds drag that is not counted. The 3D model here is v1_2 (64 mm can, real bay cavity); RealFlight flies model v1_0 (50 mm can, no cavity) with the 64 mm fan physics until v1_2 is imported.",
+  build:buildMk1
+};
+
+/* ===== three.js scene ===== */
+const host=document.getElementById('view');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+host.prepend(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x12171c);
+const cam=new THREE.PerspectiveCamera(35,1,0.01,60);
+scene.add(new THREE.HemisphereLight(0xe2eaf3,0x1d232a,0.95));
+const sun=new THREE.DirectionalLight(0xffffff,0.85); sun.position.set(2,3,1.5); scene.add(sun);
+const grid=new THREE.GridHelper(6,30,0x2a333d,0x1b2128); scene.add(grid);
+const M=(c,r=.55,m=.1)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m,side:THREE.DoubleSide});
+const MAT={grey:M(0xb9c0c7)};
+let craft=null, state={};
+
+/* -- D Baird Mk1: parts from mk1_mesh.js (model mm: X right, Y nose, Z up -> three x=Y, y=Z, z=X, metres) -- */
+const MK1_YC=-178; // pod mid-length, so the plane sits centred on the grid
+const mk1P=(X,Y,Z)=>[(Y-MK1_YC)/1000,Z/1000,X/1000];
+const MK1_SCHEMES={
+  redarrow:{top:'#c8102e',under:'#141414',canopy:'#141414',canopyA:0.92,tips:{colors:['#f2f2ef','#c8102e','#f2f2ef'],f:[0.78,0.92],skew:-0.35}},
+  ninja:{top:'#0a0a0c',under:'#ff5f00',canopy:'#a7adb5',canopyA:0.8,tips:{colors:['#ff1f8f','#ff6a00','#00a8ff'],f:[0.70,0.90],skew:0.3}}};
+const MK1_FLAT={CS_LW:'#1d1c1b',TAIL_SKID:'#1d1c1b',EDFMOUNT:'#3a3c3f',CS_EDFLINKF:'#3a3c3f',CS_EDFLINKR:'#3a3c3f',CS_SPINNER:'#1e1f21'};
+const MK1_TIPPARTS=['CS_RMW','CS_LMW','CS_RMA','CS_LMA'];
+function b64(s,T){const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return new T(u.buffer);}
+function mk1Part(name,sch){
+  const d=window.MK1.parts[name],q=b64(d.p,Int16Array),ix=b64(d.i,Uint16Array),U=window.MK1.unit_mm,v=new Float32Array(q.length);
+  for(let k=0;k<q.length;k+=3){const p=mk1P(q[k]*U,q[k+1]*U,q[k+2]*U);v[k]=p[0];v[k+1]=p[1];v[k+2]=p[2];}
+  let g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(v,3));g.setIndex(new THREE.BufferAttribute(ix,1));g.computeVertexNormals();
+  if(name==='CANOPY')return new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:sch.canopy,roughness:.08,metalness:.4,transparent:true,opacity:sch.canopyA}));
+  g=g.toNonIndexed();const P=g.attributes.position,col=new Float32Array(P.count*3),c=new THREE.Color(),A=new THREE.Vector3(),B=new THREE.Vector3(),C=new THREE.Vector3();
+  const tp=sch.tips,H=1000,yref=-58.7,w=(tp.f[1]-tp.f[0])*H/3;
+  for(let f=0;f<P.count;f+=3){A.fromBufferAttribute(P,f);B.fromBufferAttribute(P,f+1);C.fromBufferAttribute(P,f+2);
+    const nz=B.clone().sub(A).cross(C.clone().sub(A)).normalize().y;           // model Z component of the face normal
+    const X=(A.z+B.z+C.z)/3*1000,Y=(A.x+B.x+C.x)/3*1000+MK1_YC,Z=(A.y+B.y+C.y)/3*1000;
+    let hex=MK1_FLAT[name];
+    if(!hex){hex=nz<-0.1?sch.under:sch.top;
+      if(name==='CS_EDFCARRIAGE'&&Z<45.4)hex='#2f3134';                       // fan can; the lid above takes the skin colour
+      if(name==='FUSELAGE'&&Math.abs(X)<=37&&Y>=-238&&Y<=-90&&Z>=-31&&Z<44){const nx=B.clone().sub(A).cross(C.clone().sub(A)).normalize().z;if(Math.sign(X)*nx<0.2&&nz>-0.2)hex='#1a1b1d';}   // v1_2 bay: dark walls and floor
+      if(nz>=-0.1&&MK1_TIPPARTS.includes(name)){const t=Math.abs(X)+tp.skew*Y;   // raked tip band
+        for(let i=0;i<3;i++){const lo=tp.f[0]*H+i*w+tp.skew*yref;if(t>=lo&&t<lo+w)hex=tp.colors[i];}}}
+    c.set(hex);for(let k=0;k<3;k++)col.set([c.r,c.g,c.b],(f+k)*3);}
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  return new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.42,metalness:.05}));}
+function mk1Decal(target,text,hMM,at,normal,read,up){ // text pressed onto a surface found by a ray along -normal
+  const cv=document.createElement('canvas'),cx=cv.getContext('2d'),px=128;cx.font='bold '+px+'px "IBM Plex Sans",Arial,sans-serif';
+  const tw=Math.ceil(cx.measureText(text).width);cv.width=tw+16;cv.height=px*1.15;
+  cx.font='bold '+px+'px "IBM Plex Sans",Arial,sans-serif';cx.fillStyle='#f2f2ef';cx.textBaseline='middle';cx.fillText(text,8,cv.height/2);
+  const h=hMM/1000*1.15,wd=h*cv.width/cv.height,n=new THREE.Vector3(...normal);
+  target.updateMatrixWorld(true);
+  const rc=new THREE.Raycaster(new THREE.Vector3(...at).addScaledVector(n,0.3),n.clone().negate());const hit=rc.intersectObject(target)[0];if(!hit)return null;
+  // wrap the text onto the skin: a grid laid over the hit point, each vertex dropped onto the surface by its own ray
+  const R=new THREE.Vector3(...read),Up=new THREE.Vector3(...up),NX=48,NY=12,pos=[],uv=[],idx=[],o=new THREE.Vector3();
+  for(let j=0;j<=NY;j++)for(let i=0;i<=NX;i++){const p=hit.point.clone().addScaledVector(R,(i/NX-.5)*wd).addScaledVector(Up,(j/NY-.5)*h);
+    rc.set(o.copy(p).addScaledVector(n,0.3),n.clone().negate());const hh=rc.intersectObject(target)[0];
+    const q=hh?hh.point.clone().addScaledVector(hh.face.normal.clone().transformDirection(target.matrixWorld),0.0007):p;pos.push(q.x,q.y,q.z);uv.push(i/NX,j/NY);}
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const a=j*(NX+1)+i,b=a+1,c=a+NX+1,d=c+1;idx.push(a,b,c,b,d,c);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();
+  return new THREE.Mesh(g,new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(cv),transparent:true,roughness:.5,side:THREE.FrontSide,polygonOffset:true,polygonOffsetFactor:-1}));}
+function buildMk1(opt){
+  const G=new THREE.Group(),sch=MK1_SCHEMES[opt.variant||'redarrow'],parts={};
+  if(!window.MK1){const t=new THREE.Mesh(new THREE.BoxGeometry(.1,.1,.1),MAT.grey);G.add(t);return {group:G,spin:[],ground:-.1,dist:3};}
+  for(const n of Object.keys(window.MK1.parts)){parts[n]=mk1Part(n,sch);}
+  const rig=Object.fromEntries(window.MK1.rig.map(r=>[r.frame.replace('~',''),r]));
+  // lift: each link pair turns about its own base pivot; the carriage (with the fan rotor) translates, staying level
+  const pivot=(n)=>{const a=rig[n].at;return new THREE.Vector3(...mk1P(a[0],a[1],a[2]));};
+  const links=['CS_EDFLINKF','CS_EDFLINKR'].map(n=>{const pv=new THREE.Group();pv.position.copy(pivot(n));const m=parts[n];m.position.copy(pivot(n)).negate();pv.add(m);G.add(pv);delete parts[n];return pv;});
+  const car=new THREE.Group();car.add(parts.CS_EDFCARRIAGE,parts.CS_SPINNER);
+  const rotor=new THREE.Group(),hub=new THREE.Vector3(...mk1P(0,-164.0,11.65));rotor.position.copy(hub);parts.CS_SPINNER.position.copy(hub).negate();rotor.add(parts.CS_SPINNER);car.add(rotor);G.add(car);
+  delete parts.CS_EDFCARRIAGE;delete parts.CS_SPINNER;
+  for(const n in parts)G.add(parts[n]);
+  const skinMats=['FUSELAGE','CANOPY','ROOT_FAIRING_L','ROOT_FAIRING_R','EDFMOUNT'].filter(n=>parts[n]).map(n=>{const m=parts[n].material;return {m,base:m.opacity,baseT:m.transparent};});
+  // parallelogram: solve the link vector v from the stowed and raised fan centres (C0 -> C1 over 105 deg)
+  const OPEN=-105*Math.PI/180,dY=(-74.0)-(-164.0),dZ=109.9-11.65,c=Math.cos(OPEN)-1,s=Math.sin(OPEN),det=c*c+s*s;
+  const vY=(c*dY+s*dZ)/det,vZ=(-s*dY+c*dZ)/det; // (R-I)^-1 d, model mm
+  // lettering: DB-V1.1 on the right wing top and left wing bottom, MK1 on both sides
+  const dec=[mk1Decal(parts.CS_RMW,'DB-V1.1',78,mk1P(520,-78,0),[0,1,0],[0,0,1],[1,0,0]),
+    mk1Decal(parts.CS_LMW,'DB-V1.1',78,mk1P(-520,-78,0),[0,-1,0],[0,0,-1],[1,0,0]),
+    mk1Decal(parts.FUSELAGE,'MK1',40,mk1P(0,-244,3),[0,0,1],[1,0,0],[0,1,0]),
+    mk1Decal(parts.FUSELAGE,'MK1',40,mk1P(0,-244,3),[0,0,-1],[-1,0,0],[0,1,0])];
+  dec.forEach(d=>d&&G.add(d));
+  let u=state.mk1u||0,last=performance.now(),rate=0;
+  const box=new THREE.Box3().setFromObject(G);
+  // CG marker: target 52.8 mm aft of the root LE on the centreline, drawn through the skin
+  const cgM=new THREE.Group(),cgMat=new THREE.MeshBasicMaterial({color:0xff7a1a,depthTest:false,transparent:true}),cgP=mk1P(0,-52.8,0);
+  const ball=new THREE.Mesh(new THREE.SphereGeometry(0.014,20,14),cgMat);ball.renderOrder=9;cgM.add(ball);
+  const post=new THREE.Mesh(new THREE.CylinderGeometry(0.0025,0.0025,0.24,8),cgMat);post.renderOrder=9;cgM.add(post);
+  const bar=new THREE.Mesh(new THREE.BoxGeometry(0.003,0.003,0.30),cgMat);bar.renderOrder=9;cgM.add(bar);
+  cgM.position.set(...cgP);G.add(cgM);
+  const xr=skinMats;
+  return {group:G,spin:[],ground:box.min.y-0.002,dist:3.3,cg:cgM,tick(){
+    const now=performance.now(),dt=Math.min(0.1,(now-last)/1000);last=now;
+    if(state.mode!==mk1Mode){mk1Mode=state.mode;demoT0=now;
+      if(state.mode==='demo'){state.xray=true;state.showCg=false;const cb=[...document.querySelectorAll('#toggles button')].find(x=>x.textContent==='CG');if(cb)cb.setAttribute('aria-pressed','false');look.set(...mk1P(0,-110,50));theta=1.0;phi=0.32;dist=0.95;}
+      else if(state.mode==='on'||state.mode==='off'){state.throttle=state.mode==='on'?1:0;}
+      syncXray();}
+    let thr=state.throttle||0;
+    if(state.mode==='demo'){const s=((now-demoT0)/1000)%7.5;thr=s<1.6?0:s<2.2?(s-1.6)/0.6*0.75:s<5.4?0.75:0;}
+    const on=thr>0.08;u=Math.max(0,Math.min(1,u+(on?1:-1)*dt/0.8));state.mk1u=u;
+    xr.forEach(o=>{o.m.transparent=state.xray||o.baseT;o.m.opacity=state.xray?0.22:o.base;o.m.depthWrite=!state.xray;});
+    const pct=Math.round(thr*100),ti=document.getElementById('thrIn');if(ti&&document.activeElement!==ti)ti.value=pct;
+    document.getElementById('thrPct').textContent=pct+'%';
+    document.getElementById('thrState').textContent=on?(u<1?'above 8%: lift rising':rate>0.6*(0.25+0.75*thr)?'fan up and running':'fan spooling up'):(u>0?(rate>0.05?'idle: brake on, fan stopping':'lift folding'):(rate>0.02?'brake on':'lift stowed, lid flush'));
+    const e=u*u*(3-2*u),a=OPEN*e;links.forEach(l=>l.rotation.z=a);
+    const ca=Math.cos(a)-1,sa=Math.sin(a);car.position.set(((ca*vY-sa*vZ))/1000,((sa*vY+ca*vZ))/1000,0);
+    rate+=((on&&u>=1?0.9*(0.25+0.75*thr):0)-rate)*Math.min(1,dt*(on?1.5:6)); // spool up when raised; brake hard at idle
+    if(!still)rotor.rotation.x+=rate;}};
+}
+
+/* ===== colour schemes and CG ===== */
+function renderSchemes(P){
+  const box=document.getElementById('schemes');box.replaceChildren();document.getElementById('schemePanel').hidden=!P.schemes;if(!P.schemes)return;
+  P.schemes.forEach(s=>{const b=el('button',null,'sch');b.type='button';b.dataset.id=s.id;b.setAttribute('aria-pressed',state.variant===s.id);
+    const sw=el('span',null,'sws');s.colors.forEach(c=>{const i=el('i');i.style.background=c;sw.append(i);});
+    b.append(el('b',s.label),sw,el('small',s.status));
+    b.onclick=()=>{state.variant=s.id;document.querySelectorAll('#toggles button[data-k="variant"]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===s.id));rebuild();};
+    box.append(b);});}
+function renderCg(P,measured){
+  const pn=document.getElementById('cgPanel');pn.hidden=!P.cg;if(!P.cg)return;const C=P.cg;document.getElementById('cgNote').textContent=C.note||'';
+  const W=400,x0=20,sc=(W-40)/C.chord,X=v=>x0+v*sc,svg=document.getElementById('cgSvg'),ns='http://www.w3.org/2000/svg';
+  const mk=(tag,a,txt)=>{const n=document.createElementNS(ns,tag);for(const k in a)n.setAttribute(k,a[k]);if(txt!=null)n.textContent=txt;return n;};
+  const pct=v=>Math.round((v-C.macLE)/C.mac*100);
+  svg.replaceChildren(
+    mk('path',{d:`M${X(0)} 52 Q${X(C.chord*0.25)} 34 ${X(C.chord)} 54 Q${X(C.chord*0.35)} 62 ${X(0)} 56 Z`,fill:'#2a333d',stroke:'#8f9aa6','stroke-width':1}),
+    mk('rect',{x:X(C.band[0]),y:28,width:(C.band[1]-C.band[0])*sc,height:40,fill:'#46c28a',opacity:.16}),
+    mk('line',{x1:X(C.target),y1:22,x2:X(C.target),y2:74,stroke:'#ff7a1a','stroke-width':2.5}),
+    mk('text',{x:X(C.target),y:16,fill:'#ff7a1a','text-anchor':'middle','font-size':11,'font-family':'IBM Plex Mono,monospace'},`target ${C.target} mm`),
+    mk('line',{x1:X(C.target+C.fanShift),y1:40,x2:X(C.target+C.fanShift),y2:68,stroke:'#e6b450','stroke-width':1.5,'stroke-dasharray':'3 3'}),
+    mk('text',{x:X(C.target+C.fanShift)-4,y:34,fill:'#e6b450','text-anchor':'end','font-size':10,'font-family':'IBM Plex Mono,monospace'},'fan up'),
+    mk('text',{x:X(0),y:100,fill:'#8f9aa6','font-size':10,'font-family':'IBM Plex Mono,monospace'},'LE 0'),
+    mk('text',{x:X(C.chord),y:100,fill:'#8f9aa6','text-anchor':'end','font-size':10,'font-family':'IBM Plex Mono,monospace'},`TE ${C.chord} mm (root)`),
+    mk('text',{x:X(C.band[1])+6,y:34,fill:'#46c28a','font-size':10,'font-family':'IBM Plex Mono,monospace'},`band ${pct(C.band[0])}-${pct(C.band[1])}% MAC`));
+  const m=parseFloat(measured);
+  if(isFinite(m))svg.append(mk('circle',{cx:X(m),cy:48,r:5,fill:'#e7eaee',stroke:'#0e1114','stroke-width':1.5}),mk('text',{x:X(m),y:86,fill:'#e7eaee','text-anchor':'middle','font-size':10,'font-family':'IBM Plex Mono,monospace'},'flown'));
+  const nums=document.getElementById('cgNums');nums.replaceChildren();
+  [[C.target+' mm',`target · ${pct(C.target)}% MAC`],[(C.target+C.fanShift).toFixed(1)+' mm','fan raised'],[isFinite(m)?m+' mm':'—',isFinite(m)?`flown · ${pct(m)}% MAC`:'flown: not yet']]
+    .forEach(([a,b])=>{const d=el('div');d.append(el('b',a),el('span',b));nums.append(d);});}
+
+document.getElementById('thrIn').addEventListener('input',e=>{state.throttle=e.target.value/100;state.mode='manual';
+  document.querySelectorAll('#toggles button[data-k="mode"]').forEach(x=>x.setAttribute('aria-pressed','false'));});
+
+/* ===== page wiring ===== */
+let theta=0.85,phi=0.38,dist=2.8,baseDist=2.8;const look=new THREE.Vector3();let mk1Mode=null,demoT0=0;
+function syncXray(){const b=document.getElementById('xrayBtn');if(b)b.setAttribute('aria-pressed',!!state.xray);}
+const views={iso:[0.85,0.38,1],top:[0.001,1.52,1.05],side:[Math.PI/2,0.03,0.92],front:[0,0.06,0.9]};
+function setView(v){const [t,p,k]=views[v];theta=t;phi=p;dist=baseDist*k;look.set(0,0,0);}
+function el(tag,txt,cls){const e=document.createElement(tag);if(txt!=null)e.textContent=txt;if(cls)e.className=cls;return e;}
+function render(){
+  state={plane:P,variant:P.variants[0].id,mode:P.modes[0].id,throttle:0,xray:false};
+  const $=i=>document.getElementById(i);
+  $('name').textContent=P.name;$('client').textContent=P.client;$('tag').textContent=P.tag;$('blurb').textContent=P.blurb;
+  $('scaleNote').textContent=P.scaleNote;$('specNote').textContent=P.specNote;
+  const tbl=(panel,id,cols,rows,note,noteId)=>{if(panel)$(panel).hidden=!rows;if(!rows)return;if(noteId)$(noteId).textContent=note||'';
+    const h=document.querySelector('#'+id+' thead');h.replaceChildren();const r0=el('tr');cols.forEach(c=>r0.append(el('th',c)));h.append(r0);
+    const b=document.querySelector('#'+id+' tbody');b.replaceChildren();rows.forEach((r,i)=>{const tr=el('tr');r.forEach(c=>tr.append(el('td',c)));
+      if(id==='mass'&&i===rows.length-1)tr.style.fontWeight='600';b.append(tr);});};
+  tbl(null,'specs',P.specCols,P.specs);
+  tbl('physPanel','phys',P.physCols,P.physics,P.physNote,'physNote');tbl('massPanel','mass',P.massCols,P.mass,P.massNote,'massNote');
+  $('tests').replaceChildren(...P.tests.map(T=>{const li=el('li',T.t);if(T.pred&&T.pred!=='—'){const s=el('span',' · predicted '+T.pred+(T.unit&&T.unit!=='note'?' '+T.unit:''),'est');li.append(s);}return li;}));
+  $('why').replaceChildren(...P.why.filter(Boolean).map(t=>el('li',t)));$('notes').textContent=P.notes;
+  const tg=$('toggles');tg.replaceChildren();
+  const mk=(list,key)=>list.forEach(o=>{const b=el('button',o.label);b.type='button';b.dataset.k=key;b.dataset.v=o.id;b.setAttribute('aria-pressed',state[key]===o.id);
+    b.onclick=()=>{state[key]=o.id;tg.querySelectorAll('button[data-k="'+key+'"]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===o.id));if(key==='variant')rebuild();};tg.append(b);});
+  mk(P.variants,'variant');mk(P.modes,'mode');
+  const xb=el('button','X-ray');xb.type='button';xb.id='xrayBtn';xb.setAttribute('aria-pressed','false');xb.onclick=()=>{state.xray=!state.xray;syncXray();};tg.append(xb);
+  state.showCg=true;const cb=el('button','CG');cb.type='button';cb.setAttribute('aria-pressed','true');cb.onclick=()=>{state.showCg=!state.showCg;cb.setAttribute('aria-pressed',state.showCg);};tg.append(cb);
+  rebuild();setView('iso');renderSchemes(P);renderCg(P);
+}
+function rebuild(){
+  document.querySelectorAll('#schemes .sch').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===state.variant));
+  if(craft)scene.remove(craft.group);
+  craft=P.build({variant:state.variant});
+  scene.add(craft.group);grid.position.y=craft.ground;baseDist=craft.dist;
+}
+/* download + forum buttons */
+(()=>{const d=document.getElementById('dl'),f=document.getElementById('forum');
+  if(DOWNLOAD.url){d.href=DOWNLOAD.url;document.getElementById('dlMeta').textContent=DOWNLOAD.label;}else{d.setAttribute('aria-disabled','true');d.firstChild.textContent='Download coming soon ';}
+  if(FORUM_URL)f.href=FORUM_URL;else f.hidden=true;})();
+document.querySelectorAll('#cams button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+
+let drag=null,pinch=null;const pts=new Map();
+const cv=renderer.domElement;
+cv.addEventListener('pointerdown',e=>{pts.set(e.pointerId,[e.clientX,e.clientY]);cv.setPointerCapture(e.pointerId);if(pts.size===1)drag=[e.clientX,e.clientY];});
+cv.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,[e.clientX,e.clientY]);
+  if(pts.size===2){const [a,b]=[...pts.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pinch)dist=Math.max(0.8,Math.min(8,dist*pinch/d));pinch=d;return;}
+  if(drag){theta+=(e.clientX-drag[0])*0.008;phi=Math.max(-1.3,Math.min(1.53,phi+(e.clientY-drag[1])*0.008));drag=[e.clientX,e.clientY];}});
+const up=e=>{pts.delete(e.pointerId);pinch=null;drag=pts.size===1?[...pts.values()][0]:null;};
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+cv.addEventListener('wheel',e=>{e.preventDefault();dist=Math.max(0.8,Math.min(8,dist*(1+e.deltaY*0.001)));},{passive:false});
+function size(){const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+addEventListener('resize',size);size();
+const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+render();
+(function loop(){
+  if(craft&&craft.tick)craft.tick();
+  if(craft&&craft.cg)craft.cg.visible=state.showCg!==false;
+  cam.position.set(look.x+dist*Math.cos(phi)*Math.cos(theta),look.y+dist*Math.sin(phi)+0.02,look.z+dist*Math.cos(phi)*Math.sin(theta));cam.lookAt(look);
+  renderer.render(scene,cam);requestAnimationFrame(loop);})();
+</script>
+</body></html>
